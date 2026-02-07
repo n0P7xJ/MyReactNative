@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Alert } from 'react-native';
+import { API_BASE_URL } from '@/constants/api';
 
 interface RegistrationData {
   firstName: string;
@@ -98,29 +99,42 @@ export const useRegistration = () => {
     setLoading(true);
 
     try {
-      // Тут має бути відправка даних на сервер
-      // Приклад:
-      // const formDataToSend = new FormData();
-      // formDataToSend.append('firstName', formData.firstName);
-      // formDataToSend.append('lastName', formData.lastName);
-      // formDataToSend.append('email', formData.email);
-      // formDataToSend.append('password', formData.password);
-      // formDataToSend.append('phone', formData.phone);
-      // formDataToSend.append('photo', {
-      //   uri: formData.photoUri,
-      //   type: 'image/jpeg',
-      //   name: 'profile.jpg',
-      // });
-      // const response = await fetch('YOUR_API_ENDPOINT/register', {
-      //   method: 'POST',
-      //   body: formDataToSend,
-      // });
-      // if (!response.ok) throw new Error('Registration failed');
+      const formDataToSend = new FormData();
+      formDataToSend.append('firstName', formData.firstName);
+      formDataToSend.append('lastName', formData.lastName);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('password', formData.password);
+      formDataToSend.append('phone', formData.phone);
 
-      // Для демонстрації імітуємо затримку
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      if (formData.photoUri) {
+        const filename = formData.photoUri.split('/').pop() || 'profile.jpg';
+        const match = /\.(\w+)$/.exec(filename);
+        const type = match ? `image/${match[1]}` : 'image/jpeg';
 
-      Alert.alert('Успіх', 'Реєстрація завершена успішно!', [
+        formDataToSend.append('photo', {
+          uri: formData.photoUri,
+          type,
+          name: filename,
+        } as any);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/Register`, {
+        method: 'POST',
+        body: formDataToSend,
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null);
+        const message = errorData?.message || 'Помилка реєстрації';
+        throw new Error(message);
+      }
+
+      const responseData = await response.json();
+
+      Alert.alert('Успіх', `Реєстрація завершена успішно! Вітаємо, ${responseData.firstName}!`, [
         {
           text: 'OK',
           onPress: () => {
@@ -132,7 +146,8 @@ export const useRegistration = () => {
 
       return true;
     } catch (error) {
-      Alert.alert('Помилка', 'Під час реєстрації сталася помилка');
+      const message = error instanceof Error ? error.message : 'Під час реєстрації сталася помилка';
+      Alert.alert('Помилка', message);
       console.error('Registration error:', error);
       return false;
     } finally {

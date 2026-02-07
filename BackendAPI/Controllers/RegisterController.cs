@@ -176,5 +176,62 @@ namespace BackendAPI.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Вхід користувача
+        /// </summary>
+        /// <param name="request">Дані для входу (email та пароль)</param>
+        /// <returns>Інформація про користувача та токен</returns>
+        /// <response code="200">Вхід успішний</response>
+        /// <response code="401">Невірний email або пароль</response>
+        /// <response code="400">Невалідні дані</response>
+        [HttpPost("login")]
+        [Consumes("application/json")]
+        [ProducesResponseType(typeof(LoginResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState
+                        .Where(x => x.Value?.Errors.Count > 0)
+                        .ToDictionary(
+                            kvp => kvp.Key,
+                            kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+                        );
+
+                    return BadRequest(new ErrorResponseDto
+                    {
+                        Message = "Помилка валідації",
+                        Errors = errors
+                    });
+                }
+
+                var response = await _userService.LoginUserAsync(request.Email, request.Password);
+
+                _logger.LogInformation($"Користувач успішно увійшов: {response.Email}");
+
+                return Ok(response);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex.Message);
+                return Unauthorized(new ErrorResponseDto
+                {
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Помилка при вході користувача");
+                return StatusCode(500, new ErrorResponseDto
+                {
+                    Message = "Виникла помилка при вході. Спробуйте пізніше."
+                });
+            }
+        }
     }
 }

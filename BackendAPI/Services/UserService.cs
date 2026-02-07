@@ -11,6 +11,7 @@ namespace BackendAPI.Services
     public interface IUserService
     {
         Task<RegisterResponseDto> RegisterUserAsync(RegisterRequestDto request);
+        Task<LoginResponseDto> LoginUserAsync(string email, string password);
         Task<User?> GetUserByEmailAsync(string email);
         Task<User?> GetUserByIdAsync(int id);
         Task<bool> IsEmailExistsAsync(string email);
@@ -121,6 +122,46 @@ namespace BackendAPI.Services
         {
             return await _context.Users
                 .AnyAsync(u => u.Email == email.ToLowerInvariant());
+        }
+
+        /// <summary>
+        /// Вхід користувача
+        /// </summary>
+        public async Task<LoginResponseDto> LoginUserAsync(string email, string password)
+        {
+            var user = await GetUserByEmailAsync(email);
+
+            if (user == null)
+            {
+                throw new UnauthorizedAccessException("Користувач не знайдений");
+            }
+
+            // Перевірка пароля
+            var isPasswordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+            if (!isPasswordValid)
+            {
+                throw new UnauthorizedAccessException("Невірний пароль");
+            }
+
+            if (!user.IsActive)
+            {
+                throw new UnauthorizedAccessException("Обліковий запис деактивований");
+            }
+
+            _logger.LogInformation($"Користувач увійшов: {user.Email}");
+
+            return new LoginResponseDto
+            {
+                UserId = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Phone = user.Phone,
+                ProfilePhotoUrl = user.ProfilePhotoPath,
+                CreatedAt = user.CreatedAt,
+                Token = "dummy_token_" + user.Id, // Для тестування, потім буде JWT
+                Message = "Вхід успішний"
+            };
         }
     }
 }

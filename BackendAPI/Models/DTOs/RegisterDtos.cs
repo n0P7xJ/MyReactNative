@@ -51,6 +51,36 @@ namespace BackendAPI.Models.DTOs
     }
 
     /// <summary>
+    /// DTO для запиту входу користувача
+    /// </summary>
+    public class LoginRequestDto
+    {
+        [Required(ErrorMessage = "Email обов'язковий")]
+        [EmailAddress(ErrorMessage = "Невірний формат email")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Пароль обов'язковий")]
+        [MinLength(6, ErrorMessage = "Пароль має бути мінімум 6 символів")]
+        public string Password { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// DTO для відповіді після успішної входу
+    /// </summary>
+    public class LoginResponseDto
+    {
+        public int UserId { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string? ProfilePhotoUrl { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string Token { get; set; } = string.Empty; // JWT токен
+        public string Message { get; set; } = "Вхід успішний";
+    }
+
+    /// <summary>
     /// DTO для відповіді з помилкою
     /// </summary>
     public class ErrorResponseDto

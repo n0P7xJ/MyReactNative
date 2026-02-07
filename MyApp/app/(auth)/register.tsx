@@ -19,6 +19,10 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useRegistration } from '@/hooks/use-registration';
 import { styles } from '@/styles/register.styles';
 
+// Логування при завантаженні для дебагування
+console.log('🔧 [register.tsx] Platform:', Platform.OS);
+console.log('🔧 [register.tsx] __DEV__:', typeof __DEV__ !== 'undefined' ? __DEV__ : 'undefined');
+
 export default function RegisterScreen() {
   const colorScheme = useColorScheme();
   const router = useRouter();
@@ -294,7 +298,7 @@ export default function RegisterScreen() {
           {/* Посилання на вхід */}
           <View style={styles.loginLinkContainer}>
             <ThemedText style={{ color: themeColors.tabIconDefault }}>Вже маєте аккаунт?</ThemedText>
-            <TouchableOpacity onPress={() => router.back()}>
+            <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
               <ThemedText
                 style={[
                   styles.loginLink,

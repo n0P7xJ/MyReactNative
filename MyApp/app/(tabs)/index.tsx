@@ -1,122 +1,211 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useRouter } from 'expo-router';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link, useRouter } from 'expo-router';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function HomeScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const themeColors = Colors[colorScheme ?? 'light'];
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <TouchableOpacity
-          style={[styles.registerButton, { backgroundColor: themeColors.tint }]}
-          onPress={() => router.push('/register')}>
-          <ThemedText style={styles.registerButtonText}>Перейти до реєстрації</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const { user, logout } = useAuth();
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
+  return (
+    <ScrollView style={{ flex: 1, backgroundColor: themeColors.background }}>
+      <ThemedView style={[styles.container, { backgroundColor: themeColors.background }]}>
+        {/* Заголовок */}
+        <View style={styles.headerSection}>
+          <ThemedText type="title" style={styles.mainTitle}>
+            MyReactNative
+          </ThemedText>
+          <ThemedText style={[styles.subtitle, { color: themeColors.tabIconDefault }]}>
+            {user ? `Добро пожалувати, ${user.firstName}!` : 'Вибір дії'}
+          </ThemedText>
+        </View>
+
+        {/* Якщо користувач не авторизований */}
+        {!user ? (
+          <>
+            {/* Информаційна карточка */}
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: themeColors.cardBackground,
+                  borderColor: themeColors.tabIconDefault,
+                },
+              ]}>
+              <View style={styles.cardContent}>
+                <IconSymbol size={40} name="lock.open" color={themeColors.tint} />
+                <ThemedText type="subtitle" style={styles.cardTitle}>
+                  Авторизація
+                </ThemedText>
+                <ThemedText style={[styles.cardDescription, { color: themeColors.tabIconDefault }]}>
+                  Увійдіть або зареєструйтесь, щоб розпочати роботу
+                </ThemedText>
+              </View>
+            </View>
+
+            {/* Кнопки Вхід та Реєстрація */}
+            <View style={styles.buttonsContainer}>
+              <TouchableOpacity
+                style={[styles.mainButton, { backgroundColor: themeColors.tint }]}
+                onPress={() => router.push('/(auth)/login')}
+                activeOpacity={0.8}>
+                <IconSymbol size={24} name="lock.fill" color="#fff" />
+                <ThemedText style={[styles.mainButtonText, { color: '#fff' }]}>Вхід</ThemedText>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.mainButton,
+                  {
+                    backgroundColor: themeColors.cardBackground,
+                    borderWidth: 2,
+                    borderColor: themeColors.tint,
+                  },
+                ]}
+                onPress={() => router.push('/(auth)/register')}
+                activeOpacity={0.8}>
+                <IconSymbol size={24} name="person.badge.plus" color={themeColors.tint} />
+                <ThemedText style={[styles.mainButtonText, { color: themeColors.tint }]}>
+                  Реєстрація
+                </ThemedText>
+              </TouchableOpacity>
+            </View>
+          </>
+        ) : (
+          <>
+            {/* Профіль користувача */}
+            <View
+              style={[
+                styles.card,
+                {
+                  backgroundColor: themeColors.cardBackground,
+                  borderColor: themeColors.tabIconDefault,
+                },
+              ]}>
+              <View style={styles.cardContent}>
+                <IconSymbol size={48} name="person.circle.fill" color={themeColors.tint} />
+                <ThemedText type="subtitle" style={styles.cardTitle}>
+                  {user.firstName} {user.lastName}
+                </ThemedText>
+                <ThemedText style={[styles.cardDescription, { color: themeColors.tabIconDefault }]}>
+                  {user.email}
+                </ThemedText>
+              </View>
+            </View>
+
+            {/* Кнопка выхода */}
+            <TouchableOpacity
+              style={[
+                styles.mainButton,
+                {
+                  backgroundColor: '#ff6b6b',
+                  marginTop: 20,
+                },
+              ]}
+              onPress={logout}
+              activeOpacity={0.8}>
+              <IconSymbol size={24} name="door.left.hand.open" color="#fff" />
+              <ThemedText style={styles.mainButtonText}>Вийти</ThemedText>
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* Статус */}
+        <View
+          style={[
+            styles.statusCard,
+            {
+              backgroundColor: themeColors.cardBackground,
+              borderColor: themeColors.tabIconDefault,
+            },
+          ]}>
+          <ThemedText style={[styles.statusText, { color: themeColors.tabIconDefault }]}>
+            📱 v1.0.0
+          </ThemedText>
+          <ThemedText style={[styles.statusText, { color: themeColors.tabIconDefault }]}>
+            ✅ Готово
+          </ThemedText>
+        </View>
       </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-  registerButton: {
+  container: {
+    flex: 1,
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    borderRadius: 8,
+    paddingVertical: 20,
+  },
+  headerSection: {
+    marginBottom: 40,
+    alignItems: 'center',
+  },
+  mainTitle: {
+    fontSize: 32,
+    fontWeight: '800',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  card: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 20,
+    marginBottom: 30,
+  },
+  cardContent: {
+    alignItems: 'center',
+    gap: 12,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  cardDescription: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  buttonsContainer: {
+    gap: 12,
+    marginBottom: 30,
+  },
+  mainButton: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 12,
   },
-  registerButtonText: {
+  mainButtonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 16,
+    fontSize: 18,
+  },
+  statusCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 14,
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 20,
+  },
+  statusText: {
+    fontSize: 12,
+    textAlign: 'center',
   },
 });

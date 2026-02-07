@@ -83,7 +83,11 @@ if (!Directory.Exists(uploadsPath))
     Directory.CreateDirectory(uploadsPath);
 }
 
-app.UseHttpsRedirection();
+// HTTPS редірект тільки у production (для React Native потрібен HTTP)
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 // Сервіс статичних файлів для доступу до завантажених зображень
 app.UseStaticFiles();
