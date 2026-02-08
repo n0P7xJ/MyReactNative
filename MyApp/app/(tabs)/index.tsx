@@ -100,13 +100,28 @@ export default function HomeScreen() {
               </View>
             </View>
 
+            {/* Кнопка Чат */}
+            <TouchableOpacity
+              style={[
+                styles.mainButton,
+                {
+                  backgroundColor: '#4CAF50',
+                  marginTop: 12,
+                },
+              ]}
+              onPress={() => router.push('/chat')}
+              activeOpacity={0.8}>
+              <IconSymbol size={24} name="bubble.right" color="#fff" />
+              <ThemedText style={styles.mainButtonText}>Чат</ThemedText>
+            </TouchableOpacity>
+
             {/* Кнопка выхода */}
             <TouchableOpacity
               style={[
                 styles.mainButton,
                 {
                   backgroundColor: '#ff6b6b',
-                  marginTop: 20,
+                  marginTop: 12,
                 },
               ]}
               onPress={logout}

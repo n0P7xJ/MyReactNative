@@ -27,6 +27,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 // Реєстрація сервісів
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<ISeedDataService, SeedDataService>();
 
 // Додавання SignalR для реального часу
 builder.Services.AddSignalR();
@@ -129,6 +130,10 @@ if (app.Environment.IsDevelopment())
             var context = services.GetRequiredService<ApplicationDbContext>();
             context.Database.Migrate();
             Console.WriteLine("✅ База даних успішно мігрована");
+
+            // Ініціалізація тестових даних
+            var seedDataService = services.GetRequiredService<ISeedDataService>();
+            await seedDataService.InitializeTestDataAsync();
         }
         catch (Exception ex)
         {
