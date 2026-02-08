@@ -57,5 +57,27 @@ namespace BackendAPI.Models
         /// </summary>
         [NotMapped]
         public string FullName => $"{FirstName} {LastName}";
+
+        // Навігаційні властивості для месенджера
+
+        /// <summary>
+        /// Розмови, які створив користувач
+        /// </summary>
+        public ICollection<Conversation> CreatedConversations { get; set; } = new List<Conversation>();
+
+        /// <summary>
+        /// Участь у розмовах
+        /// </summary>
+        public ICollection<ConversationParticipant> ConversationParticipants { get; set; } = new List<ConversationParticipant>();
+
+        /// <summary>
+        /// Відправлені повідомлення
+        /// </summary>
+        public ICollection<Message> SentMessages { get; set; } = new List<Message>();
+
+        /// <summary>
+        /// Статуси прочитання повідомлень
+        /// </summary>
+        public ICollection<MessageReadStatus> MessageReadStatuses { get; set; } = new List<MessageReadStatus>();
     }
 }

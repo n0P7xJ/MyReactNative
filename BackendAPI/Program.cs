@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using BackendAPI.Data;
 using BackendAPI.Services;
+using BackendAPI.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFileService, FileService>();
 
+// Додавання SignalR для реального часу
+builder.Services.AddSignalR();
+
 // Додавання Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -52,14 +56,27 @@ builder.Services.AddSwaggerGen(options =>
     }
 });
 
-// Налаштування CORS для React Native
+// Налаштування CORS для React Native та SignalR
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("ReactNativePolicy", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        if (builder.Environment.IsDevelopment())
+        {
+            // В режимі розробки дозволяємо всі origins
+            policy.SetIsOriginAllowed(_ => true)
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
+        else
+        {
+            // В production використовуємо конкретні origins
+            policy.WithOrigins("http://localhost:8081", "exp://192.168.1.1:8081")
+                  .AllowAnyMethod()
+                  .AllowAnyHeader()
+                  .AllowCredentials();
+        }
     });
 });
 
@@ -97,6 +114,9 @@ app.UseCors("ReactNativePolicy");
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Мапування SignalR Hub
+app.MapHub<ChatHub>("/chathub");
 
 // Міграція бази даних при запуску (тільки для dev)
 if (app.Environment.IsDevelopment())
