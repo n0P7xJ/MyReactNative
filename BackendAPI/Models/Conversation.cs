@@ -27,6 +27,17 @@ namespace BackendAPI.Models
         public string? GroupPhotoPath { get; set; }
 
         /// <summary>
+        /// Унікальний токен для запрошення в груповий чат
+        /// </summary>
+        [MaxLength(50)]
+        public string? InviteToken { get; set; }
+
+        /// <summary>
+        /// Чи активне посилання-запрошення
+        /// </summary>
+        public bool IsInviteLinkActive { get; set; } = true;
+
+        /// <summary>
         /// ID користувача, який створив розмову
         /// </summary>
         public int CreatedById { get; set; }

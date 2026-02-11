@@ -49,7 +49,9 @@ namespace BackendAPI.Controllers
                     Name = dto.GroupName,
                     IsGroup = dto.IsGroup,
                     CreatedById = dto.CreatedById,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    InviteToken = dto.IsGroup ? GenerateInviteToken() : null,
+                    IsInviteLinkActive = dto.IsGroup
                 };
 
                 _context.Conversations.Add(conversation);
@@ -101,17 +103,19 @@ namespace BackendAPI.Controllers
         {
             try
             {
-                var conversations = await _context.ConversationParticipants
+                // Спрощений запит без складних ThenInclude для SQLite
+                var conversationParticipants = await _context.ConversationParticipants
                     .Where(cp => cp.UserId == userId && cp.IsActive)
                     .Include(cp => cp.Conversation)
                         .ThenInclude(c => c.Participants)
                         .ThenInclude(p => p.User)
-                    .Include(cp => cp.Conversation)
-                        .ThenInclude(c => c.Messages.OrderByDescending(m => m.CreatedAt).Take(1))
-                        .ThenInclude(m => m.Sender)
-                    .Select(cp => cp.Conversation)
-                    .OrderByDescending(c => c.LastMessageAt ?? c.CreatedAt)
                     .ToListAsync();
+
+                var conversations = conversationParticipants
+                    .Select(cp => cp.Conversation)
+                    .Distinct()
+                    .OrderByDescending(c => c.LastMessageAt ?? c.CreatedAt)
+                    .ToList();
 
                 var result = new List<ConversationDto>();
 
@@ -226,8 +230,6 @@ namespace BackendAPI.Controllers
             var conversation = await _context.Conversations
                 .Include(c => c.Participants)
                     .ThenInclude(p => p.User)
-                .Include(c => c.Messages.OrderByDescending(m => m.CreatedAt).Take(1))
-                    .ThenInclude(m => m.Sender)
                 .FirstOrDefaultAsync(c => c.Id == conversationId);
 
             if (conversation == null)
@@ -243,7 +245,12 @@ namespace BackendAPI.Controllers
                 .Where(m => !m.ReadStatuses.Any(rs => rs.UserId == currentUserId))
                 .CountAsync();
 
-            var lastMessage = conversation.Messages?.FirstOrDefault();
+            // Завантажуємо останнє повідомлення окремим запитом для сумісності з SQLite
+            var lastMessage = await _context.Messages
+                .Where(m => m.ConversationId == conversation.Id && !m.IsDeleted)
+                .Include(m => m.Sender)
+                .OrderByDescending(m => m.CreatedAt)
+                .FirstOrDefaultAsync();
 
             return new ConversationDto
             {
@@ -257,6 +264,8 @@ namespace BackendAPI.Controllers
                     ? conversation.GroupPhotoPath 
                     : conversation.Participants
                         .FirstOrDefault(p => p.UserId != currentUserId)?.User?.ProfilePhotoPath,
+                InviteToken = conversation.InviteToken,
+                IsInviteLinkActive = conversation.IsInviteLinkActive,
                 CreatedAt = conversation.CreatedAt,
                 LastMessageAt = conversation.LastMessageAt,
                 Participants = conversation.Participants.Select(p => new ConversationParticipantDto
@@ -282,6 +291,208 @@ namespace BackendAPI.Controllers
                 } : null,
                 UnreadCount = unreadCount
             };
+        }
+
+        /// <summary>
+        /// Приєднатися до групового чату за посиланням
+        /// </summary>
+        [HttpPost("conversations/join")]
+        public async Task<ActionResult<ConversationDto>> JoinByInvite([FromBody] JoinByInviteDto dto)
+        {
+            try
+            {
+                var conversation = await _context.Conversations
+                    .Include(c => c.Participants)
+                    .FirstOrDefaultAsync(c => c.InviteToken == dto.InviteToken);
+
+                if (conversation == null)
+                {
+                    return NotFound("Посилання на чат не знайдено");
+                }
+
+                if (!conversation.IsGroup)
+                {
+                    return BadRequest("Неможливо приєднатися до приватного чату");
+                }
+
+                if (!conversation.IsInviteLinkActive)
+                {
+                    return BadRequest("Посилання-запрошення неактивне");
+                }
+
+                // Перевірка, чи користувач вже учасник
+                var existingParticipant = conversation.Participants
+                    .FirstOrDefault(p => p.UserId == dto.UserId);
+
+                if (existingParticipant != null)
+                {
+                    if (existingParticipant.IsActive)
+                    {
+                        return BadRequest("Ви вже є учасником цього чату");
+                    }
+                    else
+                    {
+                        // Реактивувати учасника
+                        existingParticipant.IsActive = true;
+                        existingParticipant.JoinedAt = DateTime.UtcNow;
+                    }
+                }
+                else
+                {
+                    // Додати нового учасника
+                    _context.ConversationParticipants.Add(new ConversationParticipant
+                    {
+                        ConversationId = conversation.Id,
+                        UserId = dto.UserId,
+                        Role = "member",
+                        JoinedAt = DateTime.UtcNow,
+                        IsActive = true
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+
+                return await GetConversationDto(conversation.Id, dto.UserId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error joining conversation by invite");
+                return StatusCode(500, "Помилка при приєднанні до чату");
+            }
+        }
+
+        /// <summary>
+        /// Згенерувати нове посилання-запрошення
+        /// </summary>
+        [HttpPost("conversations/regenerate-invite")]
+        public async Task<ActionResult<ConversationDto>> RegenerateInviteLink([FromBody] RegenerateInviteLinkDto dto)
+        {
+            try
+            {
+                var conversation = await _context.Conversations
+                    .Include(c => c.Participants)
+                    .FirstOrDefaultAsync(c => c.Id == dto.ConversationId);
+
+                if (conversation == null)
+                {
+                    return NotFound("Розмову не знайдено");
+                }
+
+                if (!conversation.IsGroup)
+                {
+                    return BadRequest("Посилання-запрошення доступні тільки для групових чатів");
+                }
+
+                // Перевірка прав (тільки адміни можуть регенерувати посилання)
+                var participant = conversation.Participants
+                    .FirstOrDefault(p => p.UserId == dto.UserId);
+
+                if (participant == null || participant.Role != "admin")
+                {
+                    return Forbid("Тільки адміністратори можуть регенерувати посилання");
+                }
+
+                conversation.InviteToken = GenerateInviteToken();
+                conversation.IsInviteLinkActive = true;
+                await _context.SaveChangesAsync();
+
+                return await GetConversationDto(conversation.Id, dto.UserId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error regenerating invite link");
+                return StatusCode(500, "Помилка при генерації нового посилання");
+            }
+        }
+
+        /// <summary>
+        /// Увімкнути/вимкнути посилання-запрошення
+        /// </summary>
+        [HttpPost("conversations/toggle-invite")]
+        public async Task<ActionResult<ConversationDto>> ToggleInviteLink([FromBody] ToggleInviteLinkDto dto)
+        {
+            try
+            {
+                var conversation = await _context.Conversations
+                    .Include(c => c.Participants)
+                    .FirstOrDefaultAsync(c => c.Id == dto.ConversationId);
+
+                if (conversation == null)
+                {
+                    return NotFound("Розмову не знайдено");
+                }
+
+                if (!conversation.IsGroup)
+                {
+                    return BadRequest("Посилання-запрошення доступні тільки для групових чатів");
+                }
+
+                // Перевірка прав
+                var participant = conversation.Participants
+                    .FirstOrDefault(p => p.UserId == dto.UserId);
+
+                if (participant == null || participant.Role != "admin")
+                {
+                    return Forbid("Тільки адміністратори можуть керувати посиланнями");
+                }
+
+                conversation.IsInviteLinkActive = dto.IsActive;
+                await _context.SaveChangesAsync();
+
+                return await GetConversationDto(conversation.Id, dto.UserId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error toggling invite link");
+                return StatusCode(500, "Помилка при зміні статусу посилання");
+            }
+        }
+
+        /// <summary>
+        /// Отримати інформацію про чат за токеном запрошення
+        /// </summary>
+        [HttpGet("conversations/invite/{inviteToken}")]
+        public async Task<ActionResult<object>> GetConversationByInvite(string inviteToken)
+        {
+            try
+            {
+                var conversation = await _context.Conversations
+                    .Include(c => c.Participants)
+                        .ThenInclude(p => p.User)
+                    .FirstOrDefaultAsync(c => c.InviteToken == inviteToken);
+
+                if (conversation == null)
+                {
+                    return NotFound("Посилання на чат не знайдено");
+                }
+
+                if (!conversation.IsInviteLinkActive)
+                {
+                    return BadRequest("Посилання-запрошення неактивне");
+                }
+
+                return Ok(new
+                {
+                    Id = conversation.Id,
+                    Name = conversation.Name,
+                    GroupPhotoPath = conversation.GroupPhotoPath,
+                    ParticipantCount = conversation.Participants.Count(p => p.IsActive),
+                    IsActive = conversation.IsInviteLinkActive
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting conversation by invite");
+                return StatusCode(500, "Помилка при отриманні інформації про чат");
+            }
+        }
+
+        /// <summary>
+        /// Генерація унікального токена для запрошення
+        /// </summary>
+        private string GenerateInviteToken()
+        {
+            return Guid.NewGuid().ToString("N")[..16]; // 16 символів
         }
     }
 }

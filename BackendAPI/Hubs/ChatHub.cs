@@ -44,6 +44,24 @@ namespace BackendAPI.Hubs
         {
             try
             {
+                _logger.LogInformation($"SendMessage called: conversationId={conversationId}, senderId={senderId}, messageType={messageType}");
+
+                // Перевірка існування користувача
+                var sender = await _context.Users.FindAsync(senderId);
+                if (sender == null)
+                {
+                    _logger.LogError($"Sender not found: {senderId}");
+                    throw new Exception($"Користувача з ID {senderId} не знайдено");
+                }
+
+                // Перевірка існування розмови
+                var conversation = await _context.Conversations.FindAsync(conversationId);
+                if (conversation == null)
+                {
+                    _logger.LogError($"Conversation not found: {conversationId}");
+                    throw new Exception($"Розмову з ID {conversationId} не знайдено");
+                }
+
                 // Створення повідомлення в БД
                 var message = new Message
                 {
@@ -57,16 +75,11 @@ namespace BackendAPI.Hubs
                 _context.Messages.Add(message);
                 
                 // Оновлення часу останнього повідомлення в розмові
-                var conversation = await _context.Conversations.FindAsync(conversationId);
-                if (conversation != null)
-                {
-                    conversation.LastMessageAt = DateTime.UtcNow;
-                }
+                conversation.LastMessageAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
 
-                // Завантаження відправника для повного об'єкту
-                await _context.Entry(message).Reference(m => m.Sender).LoadAsync();
+                _logger.LogInformation($"Message saved to DB with ID: {message.Id}");
 
                 // Відправка повідомлення всім учасникам розмови
                 await Clients.Group($"conversation_{conversationId}")
@@ -75,8 +88,8 @@ namespace BackendAPI.Hubs
                         id = message.Id,
                         conversationId = message.ConversationId,
                         senderId = message.SenderId,
-                        senderName = message.Sender?.FullName,
-                        senderPhoto = message.Sender?.ProfilePhotoPath,
+                        senderName = $"{sender.FirstName} {sender.LastName}",
+                        senderPhoto = sender.ProfilePhotoPath,
                         content = message.Content,
                         messageType = message.MessageType,
                         createdAt = message.CreatedAt,
@@ -87,8 +100,8 @@ namespace BackendAPI.Hubs
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error sending message");
-                throw;
+                _logger.LogError(ex, $"Error sending message to conversation {conversationId}");
+                throw new HubException($"Помилка при відправці повідомлення: {ex.Message}");
             }
         }
 

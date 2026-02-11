@@ -66,6 +66,8 @@ namespace BackendAPI.Models.DTOs
         public string? Name { get; set; }
         public bool IsGroup { get; set; }
         public string? GroupPhotoPath { get; set; }
+        public string? InviteToken { get; set; }
+        public bool IsInviteLinkActive { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? LastMessageAt { get; set; }
         public List<ConversationParticipantDto> Participants { get; set; } = new();
@@ -117,5 +119,33 @@ namespace BackendAPI.Models.DTOs
         public int UserId { get; set; }
         public DateTime ReadAt { get; set; }
         public bool IsDelivered { get; set; }
+    }
+
+    /// <summary>
+    /// DTO для приєднання до чату за посиланням
+    /// </summary>
+    public class JoinByInviteDto
+    {
+        public int UserId { get; set; }
+        public string InviteToken { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// DTO для генерації нового посилання-запрошення
+    /// </summary>
+    public class RegenerateInviteLinkDto
+    {
+        public int ConversationId { get; set; }
+        public int UserId { get; set; }
+    }
+
+    /// <summary>
+    /// DTO для перемикання статусу посилання-запрошення
+    /// </summary>
+    public class ToggleInviteLinkDto
+    {
+        public int ConversationId { get; set; }
+        public int UserId { get; set; }
+        public bool IsActive { get; set; }
     }
 }
