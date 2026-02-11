@@ -1,5 +1,6 @@
 import * as signalR from '@microsoft/signalr';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { API_BASE_URL } from '../constants/api';
 
 interface Message {
   id: number;
@@ -24,7 +25,7 @@ class ChatService {
   /**
    * Ініціалізація підключення
    */
-  async initialize(apiUrl: string = 'http://localhost:5001') {
+  async initialize(apiUrl: string = API_BASE_URL) {
     try {
       if (this.connection) return;
 
@@ -316,6 +317,201 @@ class ChatService {
       this.connection !== null &&
       this.connection.state === signalR.HubConnectionState.Connected
     );
+  }
+
+  // === API методи для роботи з чатами ===
+
+  /**
+   * Створити новий чат
+   */
+  async createConversation(
+    createdById: number,
+    participantIds: number[],
+    isGroup: boolean = false,
+    groupName?: string,
+    apiUrl: string = API_BASE_URL
+  ) {
+    try {
+      console.log('📡 API URL:', apiUrl);
+      console.log('📤 Створення розмови:', { createdById, participantIds, isGroup, groupName });
+
+      const response = await fetch(`${apiUrl}/api/messenger/conversations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          createdById,
+          participantIds,
+          isGroup,
+          groupName,
+        }),
+      });
+
+      console.log('📥 Відповідь від сервера:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('❌ Помилка від сервера:', error);
+        throw new Error(error);
+      }
+
+      const data = await response.json();
+      console.log('✅ Розмова створена:', data);
+      return data;
+    } catch (error) {
+      console.error('❌ Помилка при створенні чату:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Приєднатися до чату за посиланням
+   */
+  async joinByInvite(
+    userId: number,
+    inviteToken: string,
+    apiUrl: string = API_BASE_URL
+  ) {
+    try {
+      const response = await fetch(`${apiUrl}/api/messenger/conversations/join`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          inviteToken,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('❌ Помилка при приєднанні до чату:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Отримати інформацію про чат за токеном запрошення
+   */
+  async getConversationByInvite(
+    inviteToken: string,
+    apiUrl: string = API_BASE_URL
+  ) {
+    try {
+      const response = await fetch(
+        `${apiUrl}/api/messenger/conversations/invite/${inviteToken}`
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('❌ Помилка при отриманні інформації про чат:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Згенерувати нове посилання-запрошення
+   */
+  async regenerateInviteLink(
+    conversationId: number,
+    userId: number,
+    apiUrl: string = API_BASE_URL
+  ) {
+    try {
+      const response = await fetch(
+        `${apiUrl}/api/messenger/conversations/regenerate-invite`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            conversationId,
+            userId,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('❌ Помилка при генерації нового посилання:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Увімкнути/вимкнути посилання-запрошення
+   */
+  async toggleInviteLink(
+    conversationId: number,
+    userId: number,
+    isActive: boolean,
+    apiUrl: string = API_BASE_URL
+  ) {
+    try {
+      const response = await fetch(
+        `${apiUrl}/api/messenger/conversations/toggle-invite`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            conversationId,
+            userId,
+            isActive,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('❌ Помилка при зміні статусу посилання:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Отримати список всіх чатів користувача
+   */
+  async getUserConversations(userId: number, apiUrl: string = API_BASE_URL) {
+    try {
+      const response = await fetch(
+        `${apiUrl}/api/messenger/conversations/${userId}`
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('❌ Помилка при отриманні списку чатів:', error);
+      throw error;
+    }
   }
 
   /**

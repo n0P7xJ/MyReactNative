@@ -10,6 +10,7 @@ import {
   Platform,
   SafeAreaView,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { chatService } from '@/services/chatService';
 import { useAuth } from '@/hooks/use-auth';
 
@@ -27,6 +28,7 @@ interface Message {
 const CONVERSATION_ID = 1; // Розмова між тестовими користувачами
 
 export default function ChatScreen() {
+  const router = useRouter();
   const { user, loading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -241,24 +243,40 @@ export default function ChatScreen() {
             paddingVertical: 12,
             backgroundColor: '#FFF',
             borderBottomWidth: 1,
-            borderBottomColor: '#E5E5EA',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
           }}
         >
-          <Text style={{ fontSize: 18, fontWeight: '600' }}>Чат</Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-            <View
-              style={{
-                width: 8,
-                height: 8,
-                borderRadius: 4,
-                backgroundColor: isConnected ? '#34C759' : '#FF3B30',
-                marginRight: 6,
-              }}
-            />
-            <Text style={{ fontSize: 12, color: '#666' }}>
-              {isConnected ? 'Підключено' : 'Відключено'}
-            </Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 18, fontWeight: '600' }}>Чат</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+              <View
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: isConnected ? '#34C759' : '#FF3B30',
+                  marginRight: 6,
+                }}
+              />
+              <Text style={{ fontSize: 12, color: '#666' }}>
+                {isConnected ? 'Підключено' : 'Відключено'}
+              </Text>
+            </View>
           </View>
+          
+          {/* Кнопка налаштувань */}
+          <TouchableOpacity
+            onPress={() => router.push(`/chat-settings?id=${CONVERSATION_ID}`)}
+            style={{
+              padding: 8,
+              borderRadius: 8,
+              backgroundColor: '#F2F2F7',
+            }}
+          >
+            <Text style={{ fontSize: 20 }}>⚙️</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Messages List */}

@@ -100,22 +100,59 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            {/* Кнопка Чат */}
-            <TouchableOpacity
-              style={[
-                styles.mainButton,
-                {
-                  backgroundColor: '#4CAF50',
-                  marginTop: 12,
-                },
-              ]}
-              onPress={() => router.push('/chat')}
-              activeOpacity={0.8}>
-              <IconSymbol size={24} name="bubble.right" color="#fff" />
-              <ThemedText style={styles.mainButtonText}>Чат</ThemedText>
-            </TouchableOpacity>
+            {/* Секція чатів */}
+            <View style={styles.sectionCard}>
+              <ThemedText type="subtitle" style={styles.sectionTitle}>
+                Чати
+              </ThemedText>
+              
+              {/* Кнопка Чат */}
+              <TouchableOpacity
+                style={[
+                  styles.mainButton,
+                  {
+                    backgroundColor: '#4CAF50',
+                    marginTop: 12,
+                  },
+                ]}
+                onPress={() => router.push('/chat')}
+                activeOpacity={0.8}>
+                <IconSymbol size={24} name="bubble.right" color="#fff" />
+                <ThemedText style={styles.mainButtonText}>Відкрити чат</ThemedText>
+              </TouchableOpacity>
 
-            {/* Кнопка выхода */}
+              {/* Кнопка Створити чат */}
+              <TouchableOpacity
+                style={[
+                  styles.mainButton,
+                  {
+                    backgroundColor: '#007AFF',
+                    marginTop: 12,
+                  },
+                ]}
+                onPress={() => router.push('/create-chat')}
+                activeOpacity={0.8}>
+                <IconSymbol size={24} name="plus.bubble" color="#fff" />
+                <ThemedText style={styles.mainButtonText}>Створити чат</ThemedText>
+              </TouchableOpacity>
+
+              {/* Кнопка Приєднатися до чату */}
+              <TouchableOpacity
+                style={[
+                  styles.mainButton,
+                  {
+                    backgroundColor: '#5856D6',
+                    marginTop: 12,
+                  },
+                ]}
+                onPress={() => router.push('/join-chat')}
+                activeOpacity={0.8}>
+                <IconSymbol size={24} name="link" color="#fff" />
+                <ThemedText style={styles.mainButtonText}>Приєднатися до чату</ThemedText>
+              </TouchableOpacity>
+            </View>
+
+            {/* Кнопка виходу */}
             <TouchableOpacity
               style={[
                 styles.mainButton,
@@ -222,5 +259,13 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     textAlign: 'center',
+  },
+  sectionCard: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
   },
 });
