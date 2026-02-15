@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 import {
   View,
   FlatList,
@@ -9,10 +9,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { chatService } from '@/services/chatService';
 import { useAuth } from '@/hooks/use-auth';
+import { API_BASE_URL } from '@/constants/api';
 
 interface Message {
   id: number;
@@ -35,7 +37,18 @@ export default function ChatScreen() {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [typingUsers, setTypingUsers] = useState<Set<number>>(new Set());
-  const [unsubscribers, setUnsubscribers] = useState<Array<() => void>>([]);
+  const unsubscribersRef = useRef<Array<() => void>>([]);
+  const flatListRef = useRef<FlatList>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Автопрокрутка при нових повідомленнях
+  useEffect(() => {
+    if (messages.length > 0) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    }
+  }, [messages.length]);
 
   // Ініціалізація чату коли користувач завантажений
   useEffect(() => {
@@ -58,9 +71,13 @@ export default function ChatScreen() {
     // Cleanup функція
     return () => {
       console.log('🔌 Очищення ресурсів чату...');
-      // Відписуємось від всіх слухачів
-      unsubscribers.forEach(unsub => unsub?.());
+      // Відписуємось від всіх слухачів (використовуємо ref щоб уникнути closure бага)
+      unsubscribersRef.current.forEach(unsub => unsub?.());
+      unsubscribersRef.current = [];
       chatService.leaveConversation(CONVERSATION_ID);
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
     };
   }, [user, loading]); // Додаємо залежності
 
@@ -127,13 +144,13 @@ export default function ChatScreen() {
         setIsConnected(isConnected);
       });
 
-      // Зберігаємо unsubscribers для cleanup
-      setUnsubscribers([
+      // Зберігаємо unsubscribers для cleanup (через ref щоб уникнути closure бага)
+      unsubscribersRef.current = [
         unsubscribeMessage,
         unsubscribeTyping,
         unsubscribeStoppedTyping,
         unsubscribeConnection,
-      ]);
+      ];
 
       console.log('✅ Чат успішно ініціалізовано');
       setIsLoading(false);
@@ -158,21 +175,34 @@ export default function ChatScreen() {
     }
   };
 
-  const handleTyping = async (text: string) => {
+  const handleTyping = useCallback(async (text: string) => {
     setInputValue(text);
 
     if (!user || !isConnected) return;
 
+    // Debounce: скидаємо попередній таймер
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
     try {
       if (text.length > 0) {
         await chatService.notifyTyping(CONVERSATION_ID, user.id, user.firstName);
+        // Автоматично зупиняємо typing вказівку через 3 секунди
+        typingTimeoutRef.current = setTimeout(async () => {
+          try {
+            await chatService.notifyStoppedTyping(CONVERSATION_ID, user.id);
+          } catch (e) {
+            // ignore
+          }
+        }, 3000);
       } else {
         await chatService.notifyStoppedTyping(CONVERSATION_ID, user.id);
       }
     } catch (error) {
       console.error('❌ Помилка при повідомленні про набір:', error);
     }
-  };
+  }, [user, isConnected]);
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = item.senderId === user?.id;
@@ -181,12 +211,50 @@ export default function ChatScreen() {
       <View
         style={{
           paddingHorizontal: 12,
-          paddingVertical: 6,
-          marginBottom: 8,
+          paddingVertical: 8,
+          marginBottom: 4,
           alignSelf: isOwnMessage ? 'flex-end' : 'flex-start',
-          maxWidth: '80%',
+          maxWidth: '85%',
+          flexDirection: isOwnMessage ? 'row-reverse' : 'row',
+          alignItems: 'flex-end',
+          gap: 8,
         }}
       >
+        {/* Фото користувача */}
+        {item.senderPhoto ? (
+          <Image
+            source={{ uri: item.senderPhoto.startsWith('http') ? item.senderPhoto : `${API_BASE_URL}${item.senderPhoto}` }}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: '#E5E5EA',
+            }}
+          />
+        ) : (
+          <View
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              backgroundColor: isOwnMessage ? '#007AFF' : '#E5E5EA',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Text
+              style={{
+                color: isOwnMessage ? '#FFF' : '#999',
+                fontSize: 16,
+                fontWeight: '600',
+              }}
+            >
+              {item.senderName.charAt(0).toUpperCase()}
+            </Text>
+          </View>
+        )}
+
+        {/* Bubble повідомлення */}
         <View
           style={{
             backgroundColor: isOwnMessage ? '#007AFF' : '#E5E5EA',
@@ -195,6 +263,21 @@ export default function ChatScreen() {
             paddingVertical: 8,
           }}
         >
+          {/* Ім'я відправника (якщо чужое повідомлення) */}
+          {!isOwnMessage && (
+            <Text
+              style={{
+                color: '#666',
+                fontSize: 12,
+                fontWeight: '600',
+                marginBottom: 4,
+              }}
+            >
+              {item.senderName}
+            </Text>
+          )}
+
+          {/* Текст повідомлення */}
           <Text
             style={{
               color: isOwnMessage ? '#FFF' : '#000',
@@ -204,11 +287,14 @@ export default function ChatScreen() {
           >
             {item.content}
           </Text>
+
+          {/* Час повідомлення */}
           <Text
             style={{
               color: isOwnMessage ? '#FFFA' : '#999',
               fontSize: 12,
               marginTop: 2,
+              textAlign: 'right',
             }}
           >
             {new Date(item.createdAt).toLocaleTimeString('uk-UA', {
@@ -220,6 +306,10 @@ export default function ChatScreen() {
       </View>
     );
   };
+
+  const renderMessageFooter = () => (
+    <View style={{ height: 20 }} />
+  );
 
   if (isLoading) {
     return (
@@ -233,8 +323,9 @@ export default function ChatScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F9F9F9' }}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         {/* Header */}
         <View
@@ -243,13 +334,14 @@ export default function ChatScreen() {
             paddingVertical: 12,
             backgroundColor: '#FFF',
             borderBottomWidth: 1,
+            borderBottomColor: '#E5E5EA',
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
           }}
         >
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 18, fontWeight: '600' }}>Чат</Text>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: '#000' }}>Чат</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
               <View
                 style={{
@@ -281,13 +373,30 @@ export default function ChatScreen() {
 
         {/* Messages List */}
         <FlatList
+          ref={flatListRef}
           data={messages}
           renderItem={renderMessage}
           keyExtractor={(item) => item.id.toString()}
-          contentContainerStyle={{ paddingVertical: 12 }}
+          contentContainerStyle={{ 
+            paddingVertical: 12,
+            paddingHorizontal: 8,
+            flexGrow: 1,
+            justifyContent: messages.length === 0 ? 'center' : 'flex-end',
+          }}
+          ListFooterComponent={renderMessageFooter}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', paddingVertical: 40 }}>
+              <Text style={{ fontSize: 40, marginBottom: 8 }}>💬</Text>
+              <Text style={{ fontSize: 16, color: '#999', textAlign: 'center' }}>
+                Повідомлень немає.{"\n"}Напишіть першим!
+              </Text>
+            </View>
+          }
           inverted={false}
-          onEndReached={() => {
-            // Можна додати завантаження старих повідомлень
+          onContentSizeChange={() => {
+            if (messages.length > 0) {
+              flatListRef.current?.scrollToEnd({ animated: false });
+            }
           }}
         />
 
@@ -310,6 +419,7 @@ export default function ChatScreen() {
             borderTopColor: '#E5E5EA',
             flexDirection: 'row',
             alignItems: 'flex-end',
+            gap: 10,
           }}
         >
           <TextInput
@@ -319,9 +429,9 @@ export default function ChatScreen() {
               borderRadius: 20,
               paddingHorizontal: 16,
               paddingVertical: 10,
-              marginRight: 8,
               fontSize: 14,
               maxHeight: 100,
+              color: '#000',
             }}
             placeholder="Повідомлення..."
             placeholderTextColor="#999"
@@ -334,9 +444,9 @@ export default function ChatScreen() {
             onPress={handleSendMessage}
             disabled={!inputValue.trim() || !isConnected}
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 18,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
               backgroundColor: isConnected && inputValue.trim() ? '#007AFF' : '#CCCCCC',
               justifyContent: 'center',
               alignItems: 'center',

@@ -1,5 +1,6 @@
-import { ScrollView, StyleSheet, TouchableOpacity, View, Switch } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View, Switch, Alert } from 'react-native';
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
@@ -12,12 +13,32 @@ export default function SettingsScreen() {
   const colorScheme = useColorScheme();
   const themeColors = Colors[colorScheme ?? 'light'];
   const { user, logout } = useAuth();
+  const router = useRouter();
 
   const [notifications, setNotifications] = useState(true);
   const [darkMode, setDarkMode] = useState(colorScheme === 'dark');
 
   const handleLogout = async () => {
-    await logout();
+    Alert.alert(
+      'Підтвердження виходу',
+      'Ви впевнені, що хочете вийти?',
+      [
+        { text: 'Скасувати', onPress: () => {}, style: 'cancel' },
+        {
+          text: 'Вийти',
+          onPress: async () => {
+            try {
+              await logout();
+              router.replace('/(auth)/login');
+            } catch (error) {
+              console.error('Помилка при виході:', error);
+              Alert.alert('Помилка', 'Не вдалось вийти з облікового запису');
+            }
+          },
+          style: 'destructive',
+        },
+      ]
+    );
   };
 
   if (!user) {

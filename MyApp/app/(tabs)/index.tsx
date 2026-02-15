@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 
 import { ThemedText } from '@/components/themed-text';
@@ -161,7 +161,23 @@ export default function HomeScreen() {
                   marginTop: 12,
                 },
               ]}
-              onPress={logout}
+              onPress={() => {
+                Alert.alert(
+                  'Підтвердження виходу',
+                  'Ви впевнені, що хочете вийти?',
+                  [
+                    { text: 'Скасувати', style: 'cancel' },
+                    {
+                      text: 'Вийти',
+                      style: 'destructive',
+                      onPress: async () => {
+                        await logout();
+                        router.replace('/(auth)/login');
+                      },
+                    },
+                  ]
+                );
+              }}
               activeOpacity={0.8}>
               <IconSymbol size={24} name="door.left.hand.open" color="#fff" />
               <ThemedText style={styles.mainButtonText}>Вийти</ThemedText>

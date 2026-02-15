@@ -121,9 +121,7 @@ export const useRegistration = () => {
       const response = await fetch(`${API_BASE_URL}/api/Register`, {
         method: 'POST',
         body: formDataToSend,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        // Не встановлюємо Content-Type вручну — fetch сам додасть boundary для multipart/form-data
       });
 
       if (!response.ok) {

@@ -45,7 +45,7 @@ class ChatService {
 
       // Слухаємо на підключення
       this.connection.onreconnected(async () => {
-        console.log('✅ Переconexте переквалінокдено до SignalR');
+        console.log('✅ Перепідключено до SignalR');
         this.connectionStateListeners.forEach(listener => listener(true));
         
         // Повторне приєднання до розмови
@@ -55,7 +55,7 @@ class ChatService {
       });
 
       this.connection.onreconnecting((error) => {
-        console.log('⚠️ Спроба переквалінокдення...');
+        console.log('⚠️ Спроба перепідключення...');
         this.connectionStateListeners.forEach(listener => listener(false));
       });
 

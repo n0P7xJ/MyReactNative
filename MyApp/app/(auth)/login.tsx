@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ThemedView } from '@/components/themed-view';
@@ -71,93 +72,98 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
-      <ThemedView style={[styles.container, { backgroundColor: themeColors.background }]}>
-        <View style={styles.headerSection}>
-          <ThemedText type="title" style={styles.title}>
-            Вхід
-          </ThemedText>
-          <ThemedText style={[styles.subtitle, { color: themeColors.tabIconDefault }]}>
-            Увійдіть до свого облікового запису
-          </ThemedText>
-        </View>
-
-        <View style={styles.formSection}>
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Email</ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: themeColors.cardBackground,
-                  color: themeColors.text,
-                  borderColor: errors.email ? '#ff6b6b' : themeColors.tabIconDefault,
-                },
-              ]}
-              placeholder="Введіть email"
-              placeholderTextColor={themeColors.tabIconDefault}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                setErrors((prev) => ({ ...prev, email: undefined }));
-              }}
-              editable={!loading && !authLoading}
-            />
-            {errors.email && <ThemedText style={styles.errorText}>{errors.email}</ThemedText>}
-          </View>
-
-          <View style={styles.inputGroup}>
-            <ThemedText style={styles.label}>Пароль</ThemedText>
-            <TextInput
-              style={[
-                styles.input,
-                {
-                  backgroundColor: themeColors.cardBackground,
-                  color: themeColors.text,
-                  borderColor: errors.password ? '#ff6b6b' : themeColors.tabIconDefault,
-                },
-              ]}
-              placeholder="Введіть пароль"
-              placeholderTextColor={themeColors.tabIconDefault}
-              secureTextEntry
-              value={password}
-              onChangeText={(text) => {
-                setPassword(text);
-                setErrors((prev) => ({ ...prev, password: undefined }));
-              }}
-              editable={!loading && !authLoading}
-            />
-            {errors.password && <ThemedText style={styles.errorText}>{errors.password}</ThemedText>}
-          </View>
-        </View>
-
-        <TouchableOpacity
-          style={[
-            styles.loginButton,
-            {
-              backgroundColor: themeColors.tint,
-              opacity: loading || authLoading ? 0.6 : 1,
-            },
-          ]}
-          onPress={handleLogin}
-          disabled={loading || authLoading}>
-          {loading || authLoading ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <ThemedText style={styles.loginButtonText}>Увійти</ThemedText>
-          )}
-        </TouchableOpacity>
-
-        <View style={styles.registerLinkContainer}>
-          <ThemedText style={{ color: themeColors.tabIconDefault }}>Немає облікового запису?</ThemedText>
-          <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-            <ThemedText style={[styles.registerLink, { color: themeColors.tint }]}>
-              {' '}Зареєструватися
+      <ScrollView 
+        contentContainerStyle={{ flexGrow: 1 }}
+        showsVerticalScrollIndicator={false}
+      >
+        <ThemedView style={[styles.container, { backgroundColor: themeColors.background }]}>
+          <View style={styles.headerSection}>
+            <ThemedText type="title" style={styles.title}>
+              Вхід
             </ThemedText>
+            <ThemedText style={[styles.subtitle, { color: themeColors.tabIconDefault }]}>
+              Увійдіть до свого облікового запису
+            </ThemedText>
+          </View>
+
+          <View style={styles.formSection}>
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.label}>Email</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: themeColors.cardBackground,
+                    color: themeColors.text,
+                    borderColor: errors.email ? '#ff6b6b' : themeColors.tabIconDefault,
+                  },
+                ]}
+                placeholder="Введіть email"
+                placeholderTextColor={themeColors.tabIconDefault}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setErrors((prev) => ({ ...prev, email: undefined }));
+                }}
+                editable={!loading && !authLoading}
+              />
+              {errors.email && <ThemedText style={styles.errorText}>{errors.email}</ThemedText>}
+            </View>
+
+            <View style={styles.inputGroup}>
+              <ThemedText style={styles.label}>Пароль</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  {
+                    backgroundColor: themeColors.cardBackground,
+                    color: themeColors.text,
+                    borderColor: errors.password ? '#ff6b6b' : themeColors.tabIconDefault,
+                  },
+                ]}
+                placeholder="Введіть пароль"
+                placeholderTextColor={themeColors.tabIconDefault}
+                secureTextEntry
+                value={password}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  setErrors((prev) => ({ ...prev, password: undefined }));
+                }}
+                editable={!loading && !authLoading}
+              />
+              {errors.password && <ThemedText style={styles.errorText}>{errors.password}</ThemedText>}
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.loginButton,
+              {
+                backgroundColor: themeColors.tint,
+                opacity: loading || authLoading ? 0.6 : 1,
+              },
+            ]}
+            onPress={handleLogin}
+            disabled={loading || authLoading}>
+            {loading || authLoading ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <ThemedText style={styles.loginButtonText}>Увійти</ThemedText>
+            )}
           </TouchableOpacity>
-        </View>
-      </ThemedView>
+
+          <View style={styles.registerLinkContainer}>
+            <ThemedText style={{ color: themeColors.tabIconDefault }}>Немає облікового запису?</ThemedText>
+            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
+              <ThemedText style={[styles.registerLink, { color: themeColors.tint }]}>
+                {' '}Зареєструватися
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </ThemedView>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -166,7 +172,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
+    paddingVertical: 40,
     justifyContent: 'center',
+    minHeight: '100%',
   },
   headerSection: {
     marginBottom: 40,
