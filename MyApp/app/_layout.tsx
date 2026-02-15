@@ -18,6 +18,9 @@ export default function RootLayout() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="chat" options={{ title: 'Чат', headerBackTitle: 'Назад' }} />
+        <Stack.Screen name="create-chat" options={{ title: 'Створити чат', headerBackTitle: 'Назад' }} />
+        <Stack.Screen name="join-chat" options={{ title: 'Приєднатися', headerBackTitle: 'Назад' }} />
+        <Stack.Screen name="chat-settings" options={{ title: 'Налаштування чату', headerBackTitle: 'Назад' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         <Stack.Screen name="+not-found" />
       </Stack>

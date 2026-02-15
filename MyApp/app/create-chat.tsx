@@ -102,12 +102,12 @@ export default function CreateChatScreen() {
                 [
                   {
                     text: 'Закрити',
-                    onPress: () => router.push('/chat'),
+                    onPress: () => router.push(`/chat?id=${conversation.id}&name=${encodeURIComponent(conversation.name || groupName || 'Чат')}`),
                   },
                 ]
               );
             } else {
-              router.push('/chat');
+              router.push(`/chat?id=${conversation.id}&name=${encodeURIComponent(conversation.name || 'Приватний чат')}`);
             }
           },
         },

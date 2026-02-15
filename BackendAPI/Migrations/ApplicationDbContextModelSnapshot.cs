@@ -24,9 +24,7 @@ namespace BackendAPI.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("CreatedById")
                         .HasColumnType("INTEGER");
@@ -78,9 +76,7 @@ namespace BackendAPI.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("JoinedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("LeftAt")
                         .HasColumnType("TEXT");
@@ -120,9 +116,7 @@ namespace BackendAPI.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("EditedAt")
                         .HasColumnType("TEXT");
@@ -186,9 +180,7 @@ namespace BackendAPI.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("ReadAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("TEXT");
 
                     b.Property<int>("UserId")
                         .HasColumnType("INTEGER");
@@ -211,9 +203,7 @@ namespace BackendAPI.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("TEXT")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Email")
                         .IsRequired()

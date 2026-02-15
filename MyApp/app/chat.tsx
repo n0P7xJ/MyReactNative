@@ -11,7 +11,7 @@ import {
   SafeAreaView,
   Image,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { chatService } from '@/services/chatService';
 import { useAuth } from '@/hooks/use-auth';
 import { API_BASE_URL } from '@/constants/api';
@@ -27,10 +27,11 @@ interface Message {
   isEdited: boolean;
 }
 
-const CONVERSATION_ID = 1; // Розмова між тестовими користувачами
-
 export default function ChatScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const conversationId = params.id ? parseInt(params.id as string, 10) : null;
+  const conversationName = params.name ? decodeURIComponent(params.name as string) : 'Чат';
   const { user, loading } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -65,6 +66,12 @@ export default function ChatScreen() {
       return;
     }
 
+    if (!conversationId) {
+      console.error('❌ Не вказано ID розмови');
+      setIsLoading(false);
+      return;
+    }
+
     console.log('👤 Користувач завантажений:', user.firstName);
     initializeChat();
 
@@ -74,12 +81,12 @@ export default function ChatScreen() {
       // Відписуємось від всіх слухачів (використовуємо ref щоб уникнути closure бага)
       unsubscribersRef.current.forEach(unsub => unsub?.());
       unsubscribersRef.current = [];
-      chatService.leaveConversation(CONVERSATION_ID);
+      if (conversationId) chatService.leaveConversation(conversationId);
       if (typingTimeoutRef.current) {
         clearTimeout(typingTimeoutRef.current);
       }
     };
-  }, [user, loading]); // Додаємо залежності
+  }, [user, loading, conversationId]); // Додаємо залежності
 
   const initializeChat = async () => {
     try {
@@ -104,9 +111,21 @@ export default function ChatScreen() {
       
       setIsConnected(true);
 
+      // Завантажуємо існуючі повідомлення
+      console.log('📥 Завантаження повідомлень...');
+      try {
+        const existingMessages = await chatService.getConversationMessages(conversationId!, 1, 50, API_BASE_URL);
+        if (existingMessages && existingMessages.length > 0) {
+          setMessages(existingMessages);
+          console.log(`📥 Завантажено ${existingMessages.length} повідомлень`);
+        }
+      } catch (err) {
+        console.warn('⚠️ Не вдалося завантажити повідомлення:', err);
+      }
+
       // Приєднуємось до розмови
       console.log('💬 Приєднання до розмови...');
-      await chatService.joinConversation(CONVERSATION_ID);
+      await chatService.joinConversation(conversationId!);
       console.log('✅ Приєднаний до розмови');
 
       // Слухаємо нові повідомлення
@@ -165,11 +184,11 @@ export default function ChatScreen() {
     if (!inputValue.trim() || !user || !isConnected) return;
 
     try {
-      await chatService.sendMessage(CONVERSATION_ID, user.id, inputValue.trim());
+      await chatService.sendMessage(conversationId!, user.id, inputValue.trim());
       setInputValue('');
       
       // Повідомляємо, що зупинилися друкувати
-      await chatService.notifyStoppedTyping(CONVERSATION_ID, user.id);
+      await chatService.notifyStoppedTyping(conversationId!, user.id);
     } catch (error) {
       console.error('❌ Помилка при відправленні повідомлення:', error);
     }
@@ -187,22 +206,22 @@ export default function ChatScreen() {
 
     try {
       if (text.length > 0) {
-        await chatService.notifyTyping(CONVERSATION_ID, user.id, user.firstName);
+        await chatService.notifyTyping(conversationId!, user.id, user.firstName);
         // Автоматично зупиняємо typing вказівку через 3 секунди
         typingTimeoutRef.current = setTimeout(async () => {
           try {
-            await chatService.notifyStoppedTyping(CONVERSATION_ID, user.id);
+            await chatService.notifyStoppedTyping(conversationId!, user.id);
           } catch (e) {
             // ignore
           }
         }, 3000);
       } else {
-        await chatService.notifyStoppedTyping(CONVERSATION_ID, user.id);
+        await chatService.notifyStoppedTyping(conversationId!, user.id);
       }
     } catch (error) {
       console.error('❌ Помилка при повідомленні про набір:', error);
     }
-  }, [user, isConnected]);
+  }, [user, isConnected, conversationId]);
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isOwnMessage = item.senderId === user?.id;
@@ -341,7 +360,7 @@ export default function ChatScreen() {
           }}
         >
           <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 18, fontWeight: '600', color: '#000' }}>Чат</Text>
+            <Text style={{ fontSize: 18, fontWeight: '600', color: '#000' }}>{conversationName}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
               <View
                 style={{
@@ -360,7 +379,7 @@ export default function ChatScreen() {
           
           {/* Кнопка налаштувань */}
           <TouchableOpacity
-            onPress={() => router.push(`/chat-settings?id=${CONVERSATION_ID}`)}
+            onPress={() => router.push(`/chat-settings?id=${conversationId}`)}
             style={{
               padding: 8,
               borderRadius: 8,

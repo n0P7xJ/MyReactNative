@@ -58,10 +58,6 @@ namespace BackendAPI.Data
                 entity.Property(e => e.ProfilePhotoPath)
                     .HasMaxLength(500);
 
-                // Значення за замовчуванням
-                entity.Property(e => e.CreatedAt)
-                    .HasDefaultValueSql("GETUTCDATE()");
-
                 entity.Property(e => e.IsActive)
                     .HasDefaultValue(true);
             });
@@ -79,9 +75,6 @@ namespace BackendAPI.Data
 
                 entity.Property(c => c.Name)
                     .HasMaxLength(200);
-
-                entity.Property(c => c.CreatedAt)
-                    .HasDefaultValueSql("GETUTCDATE()");
             });
 
             // Налаштування моделі ConversationParticipant
@@ -106,9 +99,6 @@ namespace BackendAPI.Data
                 entity.Property(cp => cp.Role)
                     .HasMaxLength(20)
                     .HasDefaultValue("member");
-
-                entity.Property(cp => cp.JoinedAt)
-                    .HasDefaultValueSql("GETUTCDATE()");
 
                 entity.Property(cp => cp.IsActive)
                     .HasDefaultValue(true);
@@ -147,9 +137,6 @@ namespace BackendAPI.Data
 
                 entity.Property(m => m.FileName)
                     .HasMaxLength(255);
-
-                entity.Property(m => m.CreatedAt)
-                    .HasDefaultValueSql("GETUTCDATE()");
             });
 
             // Налаштування моделі MessageReadStatus
@@ -170,9 +157,6 @@ namespace BackendAPI.Data
                     .WithMany(u => u.MessageReadStatuses)
                     .HasForeignKey(mrs => mrs.UserId)
                     .OnDelete(DeleteBehavior.Cascade);
-
-                entity.Property(mrs => mrs.ReadAt)
-                    .HasDefaultValueSql("GETUTCDATE()");
 
                 entity.Property(mrs => mrs.IsDelivered)
                     .HasDefaultValue(true);

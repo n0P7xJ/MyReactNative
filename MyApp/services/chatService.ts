@@ -515,6 +515,32 @@ class ChatService {
   }
 
   /**
+   * Отримати повідомлення розмови через REST API
+   */
+  async getConversationMessages(
+    conversationId: number,
+    page: number = 1,
+    pageSize: number = 50,
+    apiUrl: string = API_BASE_URL
+  ) {
+    try {
+      const response = await fetch(
+        `${apiUrl}/api/messenger/conversations/${conversationId}/messages?page=${page}&pageSize=${pageSize}`
+      );
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('❌ Помилка при отриманні повідомлень:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Відключитися
    */
   async disconnect() {

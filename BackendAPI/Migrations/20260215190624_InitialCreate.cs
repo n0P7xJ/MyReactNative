@@ -6,11 +6,32 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BackendAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class AddMessengerTables : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "Users",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    FirstName = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    LastName = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
+                    Email = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
+                    PasswordHash = table.Column<string>(type: "TEXT", nullable: false),
+                    Phone = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    ProfilePhotoPath = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "TEXT", nullable: true),
+                    IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Users", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Conversations",
                 columns: table => new
@@ -20,8 +41,10 @@ namespace BackendAPI.Migrations
                     Name = table.Column<string>(type: "TEXT", maxLength: 200, nullable: true),
                     IsGroup = table.Column<bool>(type: "INTEGER", nullable: false),
                     GroupPhotoPath = table.Column<string>(type: "TEXT", nullable: true),
+                    InviteToken = table.Column<string>(type: "TEXT", maxLength: 50, nullable: true),
+                    IsInviteLinkActive = table.Column<bool>(type: "INTEGER", nullable: false),
                     CreatedById = table.Column<int>(type: "INTEGER", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     LastMessageAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
@@ -44,7 +67,7 @@ namespace BackendAPI.Migrations
                     ConversationId = table.Column<int>(type: "INTEGER", nullable: false),
                     UserId = table.Column<int>(type: "INTEGER", nullable: false),
                     Role = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false, defaultValue: "member"),
-                    JoinedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    JoinedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     LeftAt = table.Column<DateTime>(type: "TEXT", nullable: true),
                     IsActive = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true),
                     IsMuted = table.Column<bool>(type: "INTEGER", nullable: false)
@@ -82,7 +105,7 @@ namespace BackendAPI.Migrations
                     ReplyToMessageId = table.Column<int>(type: "INTEGER", nullable: true),
                     IsEdited = table.Column<bool>(type: "INTEGER", nullable: false),
                     IsDeleted = table.Column<bool>(type: "INTEGER", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     EditedAt = table.Column<DateTime>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
@@ -116,7 +139,7 @@ namespace BackendAPI.Migrations
                         .Annotation("Sqlite:Autoincrement", true),
                     MessageId = table.Column<int>(type: "INTEGER", nullable: false),
                     UserId = table.Column<int>(type: "INTEGER", nullable: false),
-                    ReadAt = table.Column<DateTime>(type: "TEXT", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    ReadAt = table.Column<DateTime>(type: "TEXT", nullable: false),
                     IsDelivered = table.Column<bool>(type: "INTEGER", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
@@ -192,6 +215,17 @@ namespace BackendAPI.Migrations
                 name: "IX_Messages_SenderId",
                 table: "Messages",
                 column: "SenderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Email",
+                table: "Users",
+                column: "Email",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Phone",
+                table: "Users",
+                column: "Phone");
         }
 
         /// <inheritdoc />
@@ -208,6 +242,9 @@ namespace BackendAPI.Migrations
 
             migrationBuilder.DropTable(
                 name: "Conversations");
+
+            migrationBuilder.DropTable(
+                name: "Users");
         }
     }
 }

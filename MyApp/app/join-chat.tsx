@@ -22,11 +22,8 @@ export default function JoinChatScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
 
-  useEffect(() => {
-    if (inviteToken) {
-      loadChatInfo();
-    }
-  }, [inviteToken]);
+  // Завантаження інформації тільки при натисканні кнопки "Перевірити"
+  // (видалено useEffect, який робив API запит при кожному натисканні клавіші)
 
   const loadChatInfo = async () => {
     if (!inviteToken.trim()) return;
@@ -61,12 +58,20 @@ export default function JoinChatScreen() {
 
     try {
       console.log('🚀 Приєднання до чату...', { userId: user.id, inviteToken });
-      await chatService.joinByInvite(user.id, inviteToken, API_BASE_URL);
-      console.log('✅ Успішно приєднано до чату');
+      const joinedConversation = await chatService.joinByInvite(user.id, inviteToken, API_BASE_URL);
+      console.log('✅ Успішно приєднано до чату:', joinedConversation);
+      const joinedName = joinedConversation?.name || chatInfo?.name || 'Чат';
+      const joinedId = joinedConversation?.id || chatInfo?.id;
       Alert.alert('Успіх', 'Ви приєдналися до чату!', [
         {
           text: 'OK',
-          onPress: () => router.push('/chat'),
+          onPress: () => {
+            if (joinedId) {
+              router.push(`/chat?id=${joinedId}&name=${encodeURIComponent(joinedName)}`);
+            } else {
+              router.replace('/(tabs)');
+            }
+          },
         },
       ]);
     } catch (error: any) {

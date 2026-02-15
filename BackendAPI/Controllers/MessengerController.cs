@@ -106,15 +106,16 @@ namespace BackendAPI.Controllers
                 // Спрощений запит без складних ThenInclude для SQLite
                 var conversationParticipants = await _context.ConversationParticipants
                     .Where(cp => cp.UserId == userId && cp.IsActive)
-                    .Include(cp => cp.Conversation)
-                        .ThenInclude(c => c.Participants)
+                    .Include(cp => cp.Conversation!)
+                        .ThenInclude(c => c!.Participants)
                         .ThenInclude(p => p.User)
                     .ToListAsync();
 
                 var conversations = conversationParticipants
                     .Select(cp => cp.Conversation)
+                    .Where(c => c != null)
                     .Distinct()
-                    .OrderByDescending(c => c.LastMessageAt ?? c.CreatedAt)
+                    .OrderByDescending(c => c!.LastMessageAt ?? c.CreatedAt)
                     .ToList();
 
                 var result = new List<ConversationDto>();

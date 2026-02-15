@@ -51,7 +51,7 @@ namespace BackendAPI.Hubs
                 if (sender == null)
                 {
                     _logger.LogError($"Sender not found: {senderId}");
-                    throw new Exception($"Користувача з ID {senderId} не знайдено");
+                    throw new HubException($"Користувача з ID {senderId} не знайдено");
                 }
 
                 // Перевірка існування розмови
@@ -59,7 +59,16 @@ namespace BackendAPI.Hubs
                 if (conversation == null)
                 {
                     _logger.LogError($"Conversation not found: {conversationId}");
-                    throw new Exception($"Розмову з ID {conversationId} не знайдено");
+                    throw new HubException($"Розмову з ID {conversationId} не знайдено");
+                }
+
+                // Перевірка, чи є відправник учасником розмови
+                var isParticipant = await _context.ConversationParticipants
+                    .AnyAsync(cp => cp.ConversationId == conversationId && cp.UserId == senderId && cp.IsActive);
+                if (!isParticipant)
+                {
+                    _logger.LogWarning($"User {senderId} is not a participant of conversation {conversationId}");
+                    throw new HubException("Ви не є учасником цієї розмови");
                 }
 
                 // Створення повідомлення в БД

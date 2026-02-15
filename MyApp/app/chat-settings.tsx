@@ -21,8 +21,8 @@ export default function ChatSettingsScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Отримати ID розмови з параметрів (або використовувати тестовий ID)
-  const conversationId = params.id ? parseInt(params.id as string) : 1;
+  // Отримати ID розмови з параметрів
+  const conversationId = params.id ? parseInt(params.id as string) : null;
 
   useEffect(() => {
     loadConversation();
