@@ -12,6 +12,7 @@ namespace BackendAPI.Services
     {
         Task<RegisterResponseDto> RegisterUserAsync(RegisterRequestDto request);
         Task<LoginResponseDto> LoginUserAsync(string email, string password);
+        Task<UpdateProfileResponseDto> UpdateUserAsync(int userId, UpdateProfileRequestDto request);
         Task<User?> GetUserByEmailAsync(string email);
         Task<User?> GetUserByIdAsync(int id);
         Task<bool> IsEmailExistsAsync(string email);
@@ -95,6 +96,73 @@ namespace BackendAPI.Services
                 ProfilePhotoUrl = photoUrl,
                 CreatedAt = user.CreatedAt,
                 Message = "Реєстрація успішна"
+            };
+        }
+
+        /// <summary>
+        /// Оновлює профіль користувача
+        /// </summary>
+        public async Task<UpdateProfileResponseDto> UpdateUserAsync(int userId, UpdateProfileRequestDto request)
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                throw new KeyNotFoundException("Користувача не знайдено");
+            }
+
+            // Оновлюємо тільки надані поля
+            if (!string.IsNullOrWhiteSpace(request.FirstName))
+            {
+                user.FirstName = request.FirstName.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.LastName))
+            {
+                user.LastName = request.LastName.Trim();
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Phone))
+            {
+                user.Phone = request.Phone.Trim();
+            }
+
+            // Оновлюємо фото профілю, якщо надано
+            if (request.Photo != null)
+            {
+                try
+                {
+                    // Видаляємо старе фото
+                    if (!string.IsNullOrEmpty(user.ProfilePhotoPath))
+                    {
+                        await _fileService.DeleteFileAsync(user.ProfilePhotoPath);
+                    }
+
+                    var photoPath = await _fileService.SaveProfilePhotoAsync(request.Photo, user.Id.ToString());
+                    user.ProfilePhotoPath = photoPath;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Помилка при оновленні фото для користувача {user.Id}");
+                    throw new InvalidOperationException("Помилка при збереженні фото");
+                }
+            }
+
+            user.UpdatedAt = DateTime.UtcNow;
+            _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation($"Профіль користувача оновлено: {user.Email} (ID: {user.Id})");
+
+            return new UpdateProfileResponseDto
+            {
+                UserId = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Phone = user.Phone,
+                ProfilePhotoUrl = user.ProfilePhotoPath,
+                UpdatedAt = user.UpdatedAt,
+                Message = "Профіль успішно оновлено"
             };
         }
 

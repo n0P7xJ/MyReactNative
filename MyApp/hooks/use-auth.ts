@@ -26,6 +26,7 @@ interface AuthContextData {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   register: (userData: any) => Promise<boolean>;
+  updateProfile: (userId: number, data: { firstName?: string; lastName?: string; phone?: string; photo?: any }) => Promise<User | null>;
   isAuthenticated: boolean;
 }
 
@@ -154,6 +155,75 @@ export const useAuth = (): AuthContextData => {
     }
   }, [login]);
 
+  // Оновлення профілю
+  const updateProfile = useCallback(async (
+    userId: number,
+    data: { firstName?: string; lastName?: string; phone?: string; photo?: any }
+  ): Promise<User | null> => {
+    try {
+      setLoading(true);
+      console.log('📝 Оновлення профілю користувача:', userId);
+
+      const formData = new FormData();
+      if (data.firstName) formData.append('FirstName', data.firstName);
+      if (data.lastName) formData.append('LastName', data.lastName);
+      if (data.phone) formData.append('Phone', data.phone);
+      if (data.photo) {
+        formData.append('Photo', {
+          uri: data.photo.uri,
+          type: data.photo.mimeType || 'image/jpeg',
+          name: data.photo.fileName || 'photo.jpg',
+        } as any);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/Register/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Accept': 'application/json',
+        },
+        body: formData,
+      });
+
+      console.log('📋 Статус відповіді:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Помилка оновлення профілю:', errorText);
+        return null;
+      }
+
+      const result = await response.json();
+      console.log('✅ Профіль оновлено:', result);
+
+      const updatedUser: User = {
+        id: result.userId || userId,
+        firstName: result.firstName,
+        lastName: result.lastName,
+        email: result.email,
+        phone: result.phone,
+        profilePhotoUrl: result.profilePhotoUrl,
+        createdAt: user?.createdAt,
+      };
+
+      setUser(updatedUser);
+
+      // Оновлення в AsyncStorage
+      if (AsyncStorage) {
+        await AsyncStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({ user: updatedUser, token })
+        );
+      }
+
+      return updatedUser;
+    } catch (error: any) {
+      console.error('❌ Помилка оновлення профілю:', error);
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [user, token]);
+
   return {
     user,
     token,
@@ -161,6 +231,7 @@ export const useAuth = (): AuthContextData => {
     login,
     logout,
     register,
+    updateProfile,
     isAuthenticated: !!user && !!token,
   };
 };

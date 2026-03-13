@@ -91,6 +91,15 @@ export default function SettingsScreen() {
               {user.phone}
             </ThemedText>
           </View>
+          <View style={styles.divider} />
+          <TouchableOpacity
+            style={[styles.editProfileButton, { backgroundColor: themeColors.tint }]}
+            onPress={() => router.push('/edit-profile')}
+            activeOpacity={0.8}
+          >
+            <IconSymbol size={18} name="pencil" color="#fff" />
+            <ThemedText style={styles.editProfileButtonText}>Редагувати профіль</ThemedText>
+          </TouchableOpacity>
         </View>
 
         {/* Сповіщення */}
@@ -275,6 +284,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dangerButtonText: {
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  editProfileButton: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+  },
+  editProfileButtonText: {
+    color: '#fff',
     fontWeight: '600',
     fontSize: 14,
   },

@@ -145,6 +145,80 @@ namespace BackendAPI.Controllers
         }
 
         /// <summary>
+        /// Оновлює профіль користувача
+        /// </summary>
+        /// <param name="id">ID користувача</param>
+        /// <param name="request">Дані для оновлення</param>
+        /// <returns>Оновлена інформація про користувача</returns>
+        /// <response code="200">Профіль успішно оновлено</response>
+        /// <response code="404">Користувач не знайдений</response>
+        /// <response code="400">Невалідні дані</response>
+        [HttpPut("{id}")]
+        [Consumes("multipart/form-data")]
+        [ProducesResponseType(typeof(UpdateProfileResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ErrorResponseDto), StatusCodes.Status400BadRequest)]
+        public async Task<IActionResult> UpdateProfile(int id, [FromForm] UpdateProfileRequestDto request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    var errors = ModelState
+                        .Where(x => x.Value?.Errors.Count > 0)
+                        .ToDictionary(
+                            kvp => kvp.Key,
+                            kvp => kvp.Value!.Errors.Select(e => e.ErrorMessage).ToArray()
+                        );
+
+                    return BadRequest(new ErrorResponseDto
+                    {
+                        Message = "Помилка валідації",
+                        Errors = errors
+                    });
+                }
+
+                var response = await _userService.UpdateUserAsync(id, request);
+
+                _logger.LogInformation($"Профіль користувача оновлено: ID {id}");
+
+                return Ok(response);
+            }
+            catch (KeyNotFoundException ex)
+            {
+                _logger.LogWarning(ex.Message);
+                return NotFound(new ErrorResponseDto
+                {
+                    Message = ex.Message
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(ex.Message);
+                return BadRequest(new ErrorResponseDto
+                {
+                    Message = ex.Message
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                _logger.LogWarning(ex.Message);
+                return BadRequest(new ErrorResponseDto
+                {
+                    Message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Помилка при оновленні профілю користувача {id}");
+                return StatusCode(500, new ErrorResponseDto
+                {
+                    Message = "Виникла помилка при оновленні профілю. Спробуйте пізніше."
+                });
+            }
+        }
+
+        /// <summary>
         /// Перевіряє чи зайнятий email
         /// </summary>
         /// <param name="email">Email для перевірки</param>

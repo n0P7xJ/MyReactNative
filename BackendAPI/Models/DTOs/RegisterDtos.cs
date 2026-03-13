@@ -81,6 +81,42 @@ namespace BackendAPI.Models.DTOs
     }
 
     /// <summary>
+    /// DTO для запиту оновлення профілю користувача
+    /// </summary>
+    public class UpdateProfileRequestDto
+    {
+        [MaxLength(100, ErrorMessage = "Ім'я не може перевищувати 100 символів")]
+        public string? FirstName { get; set; }
+
+        [MaxLength(100, ErrorMessage = "Прізвище не може перевищувати 100 символів")]
+        public string? LastName { get; set; }
+
+        [Phone(ErrorMessage = "Невірний формат телефону")]
+        [MaxLength(20)]
+        public string? Phone { get; set; }
+
+        /// <summary>
+        /// Нове фото профілю (відправляється як файл через multipart/form-data)
+        /// </summary>
+        public IFormFile? Photo { get; set; }
+    }
+
+    /// <summary>
+    /// DTO для відповіді після оновлення профілю
+    /// </summary>
+    public class UpdateProfileResponseDto
+    {
+        public int UserId { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string? ProfilePhotoUrl { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public string Message { get; set; } = "Профіль оновлено";
+    }
+
+    /// <summary>
     /// DTO для відповіді з помилкою
     /// </summary>
     public class ErrorResponseDto
